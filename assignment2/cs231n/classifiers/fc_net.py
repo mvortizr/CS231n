@@ -55,8 +55,8 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        self.params['W1'] = np.random.normal(weight_scale, size=(input_dim, hidden_dim))
-        self.params['W2'] = np.random.normal(scale=weight_scale, size=(hidden_dim, num_classes))
+        self.params['W1'] = np.random.normal(0.0,weight_scale,(input_dim, hidden_dim))
+        self.params['W2'] = np.random.normal(0.0,weight_scale,(hidden_dim, num_classes))
         self.params['b1'] = np.zeros(hidden_dim)
         self.params['b2'] = np.zeros(num_classes)
 
@@ -90,8 +90,12 @@ class TwoLayerNet(object):
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        # NN arch = Input -> Linear layer(L1) -> ReLU -> Linear layer(L2)-> Output #
 
-        pass
+        out_l1, cache_l1 = affine_relu_forward(X, self.params['W1'], self.params['b1'])
+        scores, cache_l2 = affine_forward(out_l1, self.params['W2'], self.params['b2'])
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -114,8 +118,19 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        #Calculate loss
+        loss,dx_scores = softmax_loss(scores,y)
 
-        pass
+        #Backprop
+        dx_l2, grads['W2'], grads['b2'] = affine_backward(dx_scores, cache_l2)
+        dx_l1, grads['W1'], grads['b1'] = affine_relu_backward(dx_l2, cache_l1)
+
+        #L2 Regularization
+        loss += 0.5 * self.reg * (np.sum(self.params['W1']**2) + np.sum(self.params['W2']**2))
+        grads['W2'] += self.reg*self.params['W2']
+        grads['W1'] += self.reg*self.params['W1']
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
