@@ -210,28 +210,13 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        print('Initialization...')
-
         #Putting all the dimensions in one list to make the for loop simpler
         all_dims = [input_dim] + hidden_dims + [num_classes]
-
-        print('all dims', all_dims)
         
         #Initializing layers
         for i in range(1,self.num_layers+1):
           self.params[f'W{i}'] = np.random.normal(0.0,weight_scale,(all_dims[i-1], all_dims[i]))
           self.params[f'b{i}'] = np.zeros(all_dims[i])
-
-       
-
-        #print('params', self.params)
-
-        for key,value in self.params.items():
-          print('key',key)
-          #print('value',value)
-          print('value shape', value.shape)
-        
-        print('End Initialization...')
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -295,17 +280,17 @@ class FullyConnectedNet(object):
 
         #FORWARD PASS - the loop is updating the cache and the score
 
-        cache = {}
+        self.cache = {}
         scores = X #To pass the initial input to the first layer on loop
 
-        for i in range(1, self.num_layers+1):
-          print('i',i)      
+        for i in range(1, self.num_layers+1):  
           if i == self.num_layers: # Last layer a simple affine
             scores, cache = affine_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
           else:  # Any other layer affine + ReLU
             scores, cache = affine_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
-   
-        print('End of forward pass...')
+          self.cache[f'c{i}'] = cache
+        
+        
     
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -333,7 +318,21 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        #Calculate loss
+        loss,dx_scores = softmax_loss(scores,y)
+
+        #Backprop
+        for i in range(self.num_layers, 0, -1):
+
+          if i == self.num_layers: #Last layer, apply affine backward
+            dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_backward(dx_scores, self.cache[f'c{i}'])
+          else: #Any other layer, apply affine + ReLU backward
+            dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_relu_backward(dx_scores, self.cache[f'c{i}'])
+
+          #L2 Regularization 
+          loss += 0.5 * self.reg * np.sum(self.params[f'W{i}']**2)
+          grads[f'W{i}'] += self.reg*self.params[f'W{i}']
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
