@@ -68,9 +68,23 @@ def sgd_momentum(w, dw, config=None):
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    
+    # Initialize v and w
 
-    v = mu * v - learning_rate * dx # integrate velocity
-    x += v # integrate position
+    next_w = w
+
+    if 'velocity' in config.keys():
+      v = config['velocity']
+    else:
+      v = config.get("velocity", np.zeros_like(w))
+    
+
+    # integrate velocity
+    v = config['momentum'] * v - config['learning_rate'] * dw
+    
+    # integrate position 
+    next_w += v 
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
