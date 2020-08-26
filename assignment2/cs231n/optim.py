@@ -70,21 +70,17 @@ def sgd_momentum(w, dw, config=None):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
     
-    # Initialize v and w
-
-    next_w = w
-
+    # Initialize v 
     if 'velocity' in config.keys():
       v = config['velocity']
     else:
       v = config.get("velocity", np.zeros_like(w))
     
-
     # integrate velocity
     v = config['momentum'] * v - config['learning_rate'] * dw
     
     # integrate position 
-    next_w += v 
+    next_w = w + v 
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -122,7 +118,9 @@ def rmsprop(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    config['cache'] = config['decay_rate'] * config['cache'] + (1 - config['decay_rate']) * dw**2
+    next_w = w - config['learning_rate'] * dw / (np.sqrt(config['cache']) + config['epsilon'])
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -167,7 +165,29 @@ def adam(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Convert keys of the config dictionary into variables
+    beta1 = config['beta1']
+    beta2 = config['beta2']
+    m = config['m']
+    v = config['v']
+    
+
+    # Execute algorithm
+    m = beta1*m + (1.0 -beta1)*dw
+    v = beta2*v + (1.0 -beta2)*(dw**2)
+    t = config['t'] + 1
+
+    #Correct bias
+    mt = m / (1.0 -beta1**t)
+    vt = v / (1.0 -beta2**t)
+
+    #Update weights
+    next_w = w - config['learning_rate']* mt / (np.sqrt(vt) + config['epsilon'])
+
+    #Update m,v and t variables stored in config
+    config['m'] = m
+    config['v'] = v
+    config['t'] = t
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
