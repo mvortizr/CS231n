@@ -142,8 +142,8 @@ def relu_backward(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
     #if x < 0, output is 0. if x > 0, output is 1.
-    
-    dx = (x > 0) * dout
+    dx = dout
+    dx[x <= 0] = 0
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
