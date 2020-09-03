@@ -236,6 +236,9 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
         running_var = momentum * running_var + (1 - momentum) * sample_var
 
+        #Saving the values needed for the backward pass
+        cache = (x_norm, gamma, beta, sample_mean, sample_var, x, eps)
+
         #
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -293,7 +296,42 @@ def batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    #Get dout, cache
+    #Out dx, dgamma, dbeta
+
+
+    x_norm, gamma, beta, sample_mean, sample_var, x, eps = cache
+    N,D = x.shape
+    
+    ### Batch Norm derivative as seen in the paper, page 4
+
+    
+    ## Useful variables
+
+    # x-mean
+    x_mean = x-sample_mean
+    # std inv
+    sample_std_inv = 1.0/np.sqrt(sample_var+eps)
+
+    # dL/dxnorm - needed to compute dx
+    dl_xnorm = dout * gamma
+
+    # dL/batchvar - needed to compute dx
+    dl_batchvar = -0.5 * np.sum(dl_xnorm * x_mean, axis=0, keepdims=True) * (sample_std_inv**3)
+
+    # dL/dmiu - needed to compute dx
+    dl_dmiu =  -1.0 * np.sum(dl_xnorm * sample_std_inv,axis=0,keepdims=True) + np.sum((-2.0 * dl_batchvar * x_mean)/N,axis=0, keepdims=True)
+
+    # dL/dX 
+    dx = (dl_xnorm * sample_std_inv) + ((dl_batchvar * 2.0 * x_mean)/N) + (1.0/N)*dl_dmiu
+
+    # dL/dgamma
+    dgamma = np.sum(dout * x_norm, axis=0, keepdims=True)
+    
+    # dL/dbeta
+    dbeta = np.sum(dout, axis=0, keepdims=True)
+
+    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
