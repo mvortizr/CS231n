@@ -223,17 +223,13 @@ class FullyConnectedNet(object):
           if self.normalization=='batchnorm' and i < len(hidden_dims):
             self.params[f'gamma{i}'] = np.ones(all_dims[i+1])
             self.params[f'beta{i}'] = np.zeros(all_dims[i+1])
-            #print(f'gamma{i}', self.params[f'gamma{i}'].shape)
-            #print(f'beta{i}', self.params[f'beta{i}'].shape)
-            #print('i',i)
-            #print('len hidden dims', len(hidden_dims))
 
-        #for i in range(self.num_layers):
-        #  print(f'W{i}', self.params[f'W{i}'].shape)
-          
-        #print('all dims', all_dims)
-        #print('self params', self.params)
-
+        print('all_dims',all_dims)
+        ## PREGUNTAR A SANTI ###
+        for i in range(self.num_layers):
+          if i < len(hidden_dims) and self.normalization=='batchnorm':
+            print(f'gamma{i}', self.params[f'gamma{i}'].shape)
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -301,12 +297,18 @@ class FullyConnectedNet(object):
         scores = X #To pass the initial input to the first layer on loop
 
         for i in range(self.num_layers):  
+
           if i == self.num_layers-1: # Last layer a simple affine
             scores, cache = affine_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
-          else:  # Any other layer affine + ReLU
+          
+          elif self.normalization=='batchnorm': # Creates layers with batch norm
+            scores,cache = affine_bn_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'],self.params[f'gamma{i}'],self.params[f'beta{i}'],self.bn_params[i])
+
+          else:  # Any other layer and no batchnorm = affine  + ReLU
             scores, cache = affine_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
+          
+          #Stores the cache to be used in backprop
           self.cache[f'c{i}'] = cache
-        
         
     
 
@@ -335,6 +337,7 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+        
         #Calculate loss
         loss,dx_scores = softmax_loss(scores,y)
 
@@ -343,12 +346,18 @@ class FullyConnectedNet(object):
 
           if i == self.num_layers-1: #Last layer, apply affine backward
             dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_backward(dx_scores, self.cache[f'c{i}'])
-          else: #Any other layer, apply affine + ReLU backward
+            
+          elif self.normalization=='batchnorm': # Affine + BN + ReLU layers
+            dx_scores, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_bn_relu_backward(dx_scores, self.cache[f'c{i}'])
+          else: #Any other layer and not batch norm, apply affine + ReLU backward
             dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_relu_backward(dx_scores, self.cache[f'c{i}'])
-
+        
           #L2 Regularization 
           loss += 0.5 * self.reg * np.sum(self.params[f'W{i}']**2)
           grads[f'W{i}'] += self.reg*self.params[f'W{i}']
+
+
+        
 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
