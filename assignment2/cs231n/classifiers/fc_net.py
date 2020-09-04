@@ -214,9 +214,26 @@ class FullyConnectedNet(object):
         all_dims = [input_dim] + hidden_dims + [num_classes]
         
         #Initializing layers
-        for i in range(1,self.num_layers+1):
-          self.params[f'W{i}'] = np.random.normal(0.0,weight_scale,(all_dims[i-1], all_dims[i]))
-          self.params[f'b{i}'] = np.zeros(all_dims[i])
+        for i in range(self.num_layers):
+          # Initializing weights and biases
+          self.params[f'W{i}'] = np.random.normal(0.0,weight_scale,(all_dims[i], all_dims[i+1]))
+          self.params[f'b{i}'] = np.zeros(all_dims[i+1])
+          
+          # Initializing batchnorm gamma and beta
+          if self.normalization=='batchnorm' and i < len(hidden_dims):
+            self.params[f'gamma{i}'] = np.ones(all_dims[i+1])
+            self.params[f'beta{i}'] = np.zeros(all_dims[i+1])
+            #print(f'gamma{i}', self.params[f'gamma{i}'].shape)
+            #print(f'beta{i}', self.params[f'beta{i}'].shape)
+            #print('i',i)
+            #print('len hidden dims', len(hidden_dims))
+
+        #for i in range(self.num_layers):
+        #  print(f'W{i}', self.params[f'W{i}'].shape)
+          
+        #print('all dims', all_dims)
+        #print('self params', self.params)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -283,8 +300,8 @@ class FullyConnectedNet(object):
         self.cache = {}
         scores = X #To pass the initial input to the first layer on loop
 
-        for i in range(1, self.num_layers+1):  
-          if i == self.num_layers: # Last layer a simple affine
+        for i in range(self.num_layers):  
+          if i == self.num_layers-1: # Last layer a simple affine
             scores, cache = affine_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
           else:  # Any other layer affine + ReLU
             scores, cache = affine_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
@@ -322,9 +339,9 @@ class FullyConnectedNet(object):
         loss,dx_scores = softmax_loss(scores,y)
 
         #Backprop
-        for i in range(self.num_layers, 0, -1):
+        for i in range(self.num_layers-1, -1, -1):
 
-          if i == self.num_layers: #Last layer, apply affine backward
+          if i == self.num_layers-1: #Last layer, apply affine backward
             dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_backward(dx_scores, self.cache[f'c{i}'])
           else: #Any other layer, apply affine + ReLU backward
             dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_relu_backward(dx_scores, self.cache[f'c{i}'])
