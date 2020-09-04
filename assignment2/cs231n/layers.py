@@ -412,7 +412,15 @@ def layernorm_forward(x, gamma, beta, ln_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    #Inputs: x,gamma, beta, ln_param['eps']
+    #Outputs: out,cache
+
+    # Instead of taking the X, we take x.T which is the transpose aka the features
+    sample_mean = np.mean(x.T, axis = 0)
+    sample_var = np.var(x.T, axis = 0)
+    x_norm = (x.T - sample_mean)/ np.sqrt(sample_var+eps)
+    out = gamma * x_norm.T + beta
+    cache = (x.T, x_norm.T, gamma, sample_mean, sample_var, eps)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -447,7 +455,35 @@ def layernorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x_norm, gamma, sample_mean, sample_var, x, eps = cache
+    N,D = x.shape
+    ## NOTE: x_norm and x are transposed, check forward pass
+    
+  
+    ## Useful variables
+
+    # x-mean
+    x_mean = x-sample_mean
+    # std inv
+    sample_std_inv = 1.0/np.sqrt(sample_var+eps)
+
+    # dL/dxnorm - needed to compute dx
+    dl_xnorm = dout.T * gamma #[:,np.newaxis]
+
+    # dL/batchvar - needed to compute dx
+    dl_batchvar = -0.5 * np.sum(dl_xnorm * x_mean, axis=0, keepdims=True) * (sample_std_inv**3)
+
+    # dL/dmiu - needed to compute dx
+    dl_dmiu =  -1.0 * np.sum(dl_xnorm * sample_std_inv,axis=0,keepdims=True) + np.sum((-2.0 * dl_batchvar * x_mean)/N,axis=0, keepdims=True)
+
+    # dL/dX 
+    dx = (dl_xnorm * sample_std_inv) + ((dl_batchvar * 2.0 * x_mean)/N) + (1.0/N)*dl_dmiu
+
+    # dL/dgamma
+    dgamma = np.sum(dout * x_norm, axis=0, keepdims=True)#
+    
+    # dL/dbeta
+    dbeta = np.sum(dout, axis=0, keepdims=True)#
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
