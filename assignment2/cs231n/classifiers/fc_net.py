@@ -292,8 +292,12 @@ class FullyConnectedNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         #FORWARD PASS - the loop is updating the cache and the score
+        # Note: All the layers used are declared on layer_util.py
 
+        #Init the caches
         self.cache = {}
+        self.dropout_cache = {}
+
         scores = X #To pass the initial input to the first layer on loop
 
         for i in range(self.num_layers):  
@@ -309,6 +313,10 @@ class FullyConnectedNet(object):
 
           else:  # Any other layer and no batchnorm = affine  + ReLU
             scores, cache = affine_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
+
+            if self.use_dropout: #Add a dropout forward layer if applies
+              scores, self.dropout_cache[i] = dropout_forward(scores, self.dropout_param)
+
           
           #Stores the cache to be used in backprop
           self.cache[f'c{i}'] = cache
@@ -340,25 +348,33 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+
         
         #Calculate loss
         loss,dx_scores = softmax_loss(scores,y)
 
-        #Backprop
+        #BACKPROP 
+        # Note: All the layers used are declared on layer_util.py
+
         for i in range(self.num_layers-1, -1, -1):
 
           if i == self.num_layers-1: #Last layer, apply affine backward
             dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_backward(dx_scores, self.cache[f'c{i}'])
+          else: #Any other layer
+          
+            if self.use_dropout: #Dropout backward layer if applies
+              dx_scores = dropout_backward(dx_scores, self.dropout_cache[i])
+
+            if self.normalization=='batchnorm': # Affine + BN + ReLU layers
+              dx_scores, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_bn_relu_backward(dx_scores, self.cache[f'c{i}'])
+
+            elif self.normalization=='layernorm': 
+              dx_scores, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_ln_relu_backward(dx_scores, self.cache[f'c{i}'])
+
+            else: #Any other layer and not batchnorm or layernorm, apply affine + ReLU backward
+              dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_relu_backward(dx_scores, self.cache[f'c{i}'])
+
             
-          elif self.normalization=='batchnorm': # Affine + BN + ReLU layers
-            dx_scores, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_bn_relu_backward(dx_scores, self.cache[f'c{i}'])
-
-          elif self.normalization=='layernorm': 
-            dx_scores, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_ln_relu_backward(dx_scores, self.cache[f'c{i}'])
-
-          else: #Any other layer and not batchnorm or layernorm, apply affine + ReLU backward
-            dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_relu_backward(dx_scores, self.cache[f'c{i}'])
-        
           #L2 Regularization 
           loss += 0.5 * self.reg * np.sum(self.params[f'W{i}']**2)
           grads[f'W{i}'] += self.reg*self.params[f'W{i}']
