@@ -468,7 +468,8 @@ def layernorm_backward(dout, cache):
     sample_std_inv = 1.0/np.sqrt(sample_var+eps)
 
     # dL/dxnorm - needed to compute dx
-    dl_xnorm = dout.T * gamma [:,np.newaxis]
+    dl_xnorm = dout * gamma 
+    dl_xnorm = dl_xnorm.T
 
     # dL/batchvar - needed to compute dx
     dl_batchvar = -0.5 * np.sum(dl_xnorm * x_mean, axis=0, keepdims=True) * (sample_std_inv**3)

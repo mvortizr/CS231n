@@ -305,7 +305,7 @@ class FullyConnectedNet(object):
             scores,cache = affine_bn_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'],self.params[f'gamma{i}'],self.params[f'beta{i}'],self.bn_params[i])
 
           elif self.normalization=='layernorm': # Creates layers with layer norm
-            scores,cache = affine_ln_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'],self.params[f'gamma{i}'],self.params[f'beta{i}'],self.ln_params[i])
+            scores,cache = affine_ln_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'],self.params[f'gamma{i}'],self.params[f'beta{i}'],self.bn_params[i])
 
           else:  # Any other layer and no batchnorm = affine  + ReLU
             scores, cache = affine_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
