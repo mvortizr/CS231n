@@ -366,7 +366,26 @@ def batchnorm_backward_alt(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Ref: https://kevinzakka.github.io/2016/09/14/batch_normalization/
+
+    x_norm, gamma, beta, sample_mean, sample_var, x, eps = cache
+    
+    N,D = x.shape
+
+    # std inv
+    sample_std_inv = 1.0/np.sqrt(sample_var+eps)
+    
+    # dL/dxnorm - needed to compute dx
+    dl_xnorm = dout * gamma
+       
+    #dL/dx
+    dx = 1.0/N * sample_std_inv * (N*dl_xnorm - np.sum(dl_xnorm, axis=0) - x_norm*np.sum(dl_xnorm*x_norm, axis=0))
+    
+    # dL/dgamma
+    dgamma = np.sum(dout * x_norm, axis=0, keepdims=True)
+    
+    # dL/dbeta
+    dbeta = np.sum(dout, axis=0, keepdims=True)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
