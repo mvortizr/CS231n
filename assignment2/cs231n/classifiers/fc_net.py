@@ -220,14 +220,14 @@ class FullyConnectedNet(object):
           self.params[f'b{i}'] = np.zeros(all_dims[i+1])
           
           # Initializing batchnorm gamma and beta
-          if self.normalization=='batchnorm' and i < len(hidden_dims):
+          if self.normalization in ['batchnorm','layernorm'] and i < len(hidden_dims):
             self.params[f'gamma{i}'] = np.ones(all_dims[i+1])
             self.params[f'beta{i}'] = np.zeros(all_dims[i+1])
 
         print('all_dims',all_dims)
         ## PREGUNTAR A SANTI ###
         for i in range(self.num_layers):
-          if i < len(hidden_dims) and self.normalization=='batchnorm':
+          if i < len(hidden_dims) and self.normalization in['batchnorm','layernorm']:
             print(f'gamma{i}', self.params[f'gamma{i}'].shape)
         
 
@@ -304,6 +304,9 @@ class FullyConnectedNet(object):
           elif self.normalization=='batchnorm': # Creates layers with batch norm
             scores,cache = affine_bn_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'],self.params[f'gamma{i}'],self.params[f'beta{i}'],self.bn_params[i])
 
+          elif self.normalization=='layernorm': # Creates layers with layer norm
+            scores,cache = affine_ln_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'],self.params[f'gamma{i}'],self.params[f'beta{i}'],self.ln_params[i])
+
           else:  # Any other layer and no batchnorm = affine  + ReLU
             scores, cache = affine_relu_forward(scores, self.params[f'W{i}'], self.params[f'b{i}'])
           
@@ -349,7 +352,11 @@ class FullyConnectedNet(object):
             
           elif self.normalization=='batchnorm': # Affine + BN + ReLU layers
             dx_scores, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_bn_relu_backward(dx_scores, self.cache[f'c{i}'])
-          else: #Any other layer and not batch norm, apply affine + ReLU backward
+
+          elif self.normalization=='layernorm': 
+            dx_scores, grads[f'W{i}'], grads[f'b{i}'], grads[f'gamma{i}'], grads[f'beta{i}'] = affine_ln_relu_backward(dx_scores, self.cache[f'c{i}'])
+
+          else: #Any other layer and not batchnorm or layernorm, apply affine + ReLU backward
             dx_scores, grads[f'W{i}'], grads[f'b{i}'] = affine_relu_backward(dx_scores, self.cache[f'c{i}'])
         
           #L2 Regularization 

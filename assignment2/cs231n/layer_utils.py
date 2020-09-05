@@ -54,7 +54,6 @@ def affine_bn_relu_forward(x,w,b,gamma,beta,bn_params):
     - cache: Object to give to the backward pass
 
     '''
-    #print('hola')
     a, fc_cache = affine_forward(x, w, b)
     bn, bn_cache = batchnorm_forward(a, gamma, beta,bn_params)
     out, relu_cache = relu_forward(bn)
@@ -68,10 +67,41 @@ def affine_bn_relu_backward(dout,cache):
     '''
     fc_cache, bn_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
-    dbn, dgamma, dbeta = batchnorm_backward(da, bn_cache)
-    
-    
+    dbn, dgamma, dbeta = batchnorm_backward(da, bn_cache) 
     dx, dw, db = affine_backward(dbn, fc_cache)
+    
+    return dx, dw, db, dgamma, dbeta
+
+def affine_ln_relu_forward(x,w,b,gamma,beta,ln_params):
+  '''
+    Applies an affine transform, a batch norm and a relu forward
+
+  Inputs:
+  - x: Input to the affine layer
+  - w, b: Weights for the affine layer
+  - gamma,beta: Weights for the ln forward
+  - ln_params: Params for LN
+
+  Returns a tuple of:
+  - out: Output from the ReLU
+  - cache: Object to give to the backward pass
+
+  '''
+  a, fc_cache = affine_forward(x, w, b)
+  ln, ln_cache = layernorm_forward(a, gamma, beta,ln_params)
+  out, relu_cache = relu_forward(ln)
+  cache = (fc_cache, ln_cache, relu_cache)
+  return out, cache
+
+def affine_ln_relu_backward(dout,cache):
+    '''
+     Applies a relu, layer norm and an affine backward pass
+
+    '''
+    fc_cache, ln_cache, relu_cache = cache
+    da = relu_backward(dout, relu_cache)
+    dln, dgamma, dbeta = layernorm_backward(da, ln_cache)
+    dx, dw, db = affine_backward(dln, fc_cache)
     
     return dx, dw, db, dgamma, dbeta
 

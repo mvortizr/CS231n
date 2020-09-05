@@ -420,7 +420,8 @@ def layernorm_forward(x, gamma, beta, ln_param):
     sample_var = np.var(x.T, axis = 0)
     x_norm = (x.T - sample_mean)/ np.sqrt(sample_var+eps)
     out = gamma * x_norm.T + beta
-    cache = (x.T, x_norm.T, gamma, sample_mean, sample_var, eps)
+    cache = (x_norm.T, gamma, sample_mean, sample_var, x.T, eps)
+    #print('x shape forward',x.shape) 4,5
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -455,10 +456,9 @@ def layernorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+    ## NOTE: x and x_norm are transposed, check forward pass
     x_norm, gamma, sample_mean, sample_var, x, eps = cache
     N,D = x.shape
-    ## NOTE: x_norm and x are transposed, check forward pass
-    
   
     ## Useful variables
 
@@ -468,7 +468,7 @@ def layernorm_backward(dout, cache):
     sample_std_inv = 1.0/np.sqrt(sample_var+eps)
 
     # dL/dxnorm - needed to compute dx
-    dl_xnorm = dout.T * gamma #[:,np.newaxis]
+    dl_xnorm = dout.T * gamma [:,np.newaxis]
 
     # dL/batchvar - needed to compute dx
     dl_batchvar = -0.5 * np.sum(dl_xnorm * x_mean, axis=0, keepdims=True) * (sample_std_inv**3)
@@ -478,6 +478,7 @@ def layernorm_backward(dout, cache):
 
     # dL/dX 
     dx = (dl_xnorm * sample_std_inv) + ((dl_batchvar * 2.0 * x_mean)/N) + (1.0/N)*dl_dmiu
+    dx = dx.T
 
     # dL/dgamma
     dgamma = np.sum(dout * x_norm, axis=0, keepdims=True)#
