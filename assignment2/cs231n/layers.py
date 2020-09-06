@@ -648,7 +648,33 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    #Ref: https://cs231n.github.io/convolutional-networks/
+  
+    #Extracting info from input
+    N,C,H,W = x.shape
+    F, _, HH, WW = w.shape
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+
+    #Creating empty output volume 
+    H_next = int(1 + (H + 2 * pad - HH) / stride)
+    W_next = int(1 + (W + 2 * pad - WW) / stride)
+    out_shape = (N, F, H_next, W_next)
+    out = np.zeros(out_shape)
+
+    #Adding pad to input batch
+    padded_x = np.copy(np.pad(x, ((0,0),(0,0),(pad, pad), (pad, pad)), 'constant', constant_values=(0)))
+
+    
+    for num_img in range(N): #Travel around every image of the batch
+      for j in range(H_next): #Travel around the height from top to bottom
+        for i in range(W_next): #Travel around the width from left to right 
+          for num_fil in range(F): #Compute activaction map for every filter in this region        
+            #Selecting x region to convolve 
+            x_region = padded_x[num_img,:, stride*j:HH +(stride*j), stride*i:WW+(stride*i)] 
+            #Dot product between X * W + b between filter and region --> Convolution 
+            out[num_img, num_fil, j, i] = np.sum(x_region * w[num_fil]) + b[num_fil] 
+        
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -676,9 +702,8 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+   
     pass
-
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
