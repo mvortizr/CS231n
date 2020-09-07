@@ -884,7 +884,18 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    '''
+    The input of the convolutional layer is (N, C, H, W),
+    and BN in Conv layers is the Normalization of each channel of each batch. 
+    We treat each channel as an attribute/feature of the full connection
+    So (N', D') becomes (N*H*W,C)
+    '''
+
+    N, C, H, W = x.shape #N=0, C=1, H=2, W=3
+    reshaped_x = x.transpose(0,2,3,1).reshape(N*H*W,C)
+    out, cache = batchnorm_forward(reshaped_x, gamma, beta, bn_param)
+    out = out.reshape(N,H,W,C).transpose(0,3,1,2) #N=0, H=1, W=2, C=3
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -917,8 +928,12 @@ def spatial_batchnorm_backward(dout, cache):
     # Your implementation should be very short; ours is less than five lines. #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+   
+    N,C,H,W = dout.shape
+    
+    reshaped_dout = dout.transpose(0,2,3,1).reshape(N*H*W,C)
+    dx, dgamma, dbeta = batchnorm_backward(reshaped_dout, cache)
+    dx = dx.reshape(N,H,W,C).transpose(0,3,1,2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
