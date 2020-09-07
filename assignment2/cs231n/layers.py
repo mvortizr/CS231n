@@ -657,9 +657,9 @@ def conv_forward_naive(x, w, b, conv_param):
     stride = conv_param['stride']
 
     #Creating empty output volume 
-    H_next = int(1 + (H + 2 * pad - HH) / stride)
-    W_next = int(1 + (W + 2 * pad - WW) / stride)
-    out_shape = (N, F, H_next, W_next)
+    H_out = int(1 + (H + 2 * pad - HH) / stride)
+    W_out = int(1 + (W + 2 * pad - WW) / stride)
+    out_shape = (N, F, H_out, W_out)
     out = np.zeros(out_shape)
 
     #Adding pad to input batch
@@ -667,8 +667,8 @@ def conv_forward_naive(x, w, b, conv_param):
 
     
     for num_img in range(N): #Travel around every image of the batch
-      for j in range(H_next): #Travel around the height from top to bottom
-        for i in range(W_next): #Travel around the width from left to right 
+      for j in range(H_out): #Travel around the height from top to bottom
+        for i in range(W_out): #Travel around the width from left to right 
           for num_fil in range(F): #Compute activaction map for every filter in this region        
             #Selecting x region to convolve 
             x_region = padded_x[num_img,:, stride*j:HH +(stride*j), stride*i:WW+(stride*i)] 
@@ -702,8 +702,39 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-   
-    pass
+    
+    #Extracting info from cache
+    x,w,b,conv_param = cache
+    F, _, HH, WW = w.shape
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N, _, H_out, W_out = dout.shape
+
+    #Adding pad to x
+    padded_x = np.copy(np.pad(x, ((0,0),(0,0),(pad, pad), (pad, pad)), 'constant', constant_values=(0)))
+
+    # dL/db = Sum all axis but 1 (F), as b has shape F
+    db = np.sum(dout, axis=(0,2,3))
+
+    #Init variables that are going to be used in the loop 
+    dw = np.zeros(w.shape)
+    dpadded_x = np.zeros(padded_x.shape)
+
+
+    #Same loop as in the forward pass but with derivatives
+    for num_img in range(N):
+      for j in range(H_out): 
+        for i in range(W_out):  
+          for num_fil in range(F): 
+             x_region = padded_x[num_img,:, stride*j:HH +(stride*j), stride*i:WW+(stride*i)]
+             dw[num_fil] += x_region * dout[num_img, num_fil, j, i]
+             dpadded_x[num_img,:, stride*j:HH +(stride*j), stride*i:WW+(stride*i)] += w[num_fil] * dout[num_img, num_fil, j, i]
+
+
+    #dL/dx is the same as dpadded_x but without the pad
+    dx = dx = dpadded_x[:,:,pad:-pad,pad:-pad]  
+
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -736,7 +767,32 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    #Extracting info from inputs
+    N, C, H, W = x.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    H_out = int(1 + (H - pool_height) / stride)
+    W_out = int(1 + (W - pool_width) / stride)
+    
+    # Creating the empty output volume
+    out_shape = (N, C, H_out, W_out)
+    out = np.zeros(out_shape)
+
+    
+    for num_img in range(N): # Travel through every image
+      for j in range(H_out): # Travel from top to bottom of image
+        for i in range(W_out): # Travel from right to left of image
+          for a_map in range(C): # Travel through all the activation maps
+            # Select region of x to pool
+            x_region = x[num_img,a_map, stride*j:pool_height +(stride*j), stride*i:pool_width+(stride*i)] 
+            # Save the max value as output
+            out[num_img,a_map,j,i] = np.max(x_region) 
+          
+
+    
+    
+    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -763,7 +819,30 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    #dout shape (N, C, H_out, W_out)
+
+    #cache 
+    #Extracting info from cache
+    x, pool_param = cache
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    s = pool_param['stride']
+    N, C, H, W = x.shape
+    _,_,H_out,W_out = dout.shape
+    
+    #Init dx with the same shape as x
+    dx = np.zeros(x.shape)
+
+    # Same loop as in the forward pass
+    for num_img in range(N): 
+      for j in range(H_out): 
+        for i in range(W_out): 
+          for a_map in range(C): 
+            # Select region of x to pool
+            x_region = x[num_img,a_map, s*j:pool_height +(s*j), s*i:pool_width+(s*i)] 
+            region_max = np.max(x_region)
+            dx[num_img,a_map, s*j:pool_height +(s*j), s*i:pool_width+(s*i)] = (x_region == region_max) * dout[num_img, a_map, j, i]
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
