@@ -972,9 +972,36 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # and layer normalization!                                                #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    '''
+    N,C,H,W = x.shape
 
-    pass
+    x = x.reshape((N,G,C//G,H,W))
+    
+    mean = np.mean(x,axis=(0,1))
+    var = np.var(x,axis=(0,1))
 
+    x = (x-mean) / np.sqrt(var+eps) #x_norm
+
+    x = x.reshape((N,C,H,W))
+
+    out = gamma * x + beta
+    '''
+   
+    N, C, H, W = x.shape
+    x_group = x.reshape(N*G, C//G *H*W)
+    
+    # Similar to layer norm but with the group
+    mean = np.mean(x_group, axis=1)
+    var = np.var(x_group, axis=1)
+
+    x_norm = (x_group.T - mean) / np.sqrt(var + eps)
+    x_norm = x_norm.T # shape (N*G, C//G*H*W)
+
+    x_norm = x_norm.reshape(N, C, H, W)
+
+    out = gamma * x_norm + beta
+    cache = (G, x, x_norm, mean,var, gamma, beta, eps)
+  
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -1003,7 +1030,40 @@ def spatial_groupnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = dout.shape
+    G, x, x_norm, mean,var, gamma, beta, eps = cache
+
+    #dout_group = dout.reshape(N*G, C//G *H*W)
+    x = x.reshape(N*G, C//G *H*W)
+  
+    # x-mean
+    x_mean = x.T - mean
+    # std inv
+    std_inv = 1.0/np.sqrt(var+eps)
+    #group dim
+    group_dim = C//G*H*W
+
+    # dL/dxnorm - needed to compute dx
+    dl_xnorm = dout * gamma 
+    dl_xnorm = dl_xnorm.reshape(N*G, group_dim)
+    dl_xnorm = dl_xnorm.T
+
+    # dL/batchvar - needed to compute dx
+    dl_batchvar = -0.5 * np.sum(dl_xnorm * x_mean, axis=0, keepdims=True) * (std_inv**3)
+
+    # dL/dmiu - needed to compute dx
+    dl_dmiu =  -1.0 * np.sum(dl_xnorm * std_inv,axis=0,keepdims=True) + np.sum((-2.0 * dl_batchvar * x_mean)/ group_dim,axis=0, keepdims=True)
+
+    # dL/dX 
+    dx = (dl_xnorm * std_inv) + ((dl_batchvar * 2.0 * x_mean)/group_dim) + (1.0/group_dim)*dl_dmiu
+    dx = dx.T.reshape(N,C,H,W)
+
+    # dL/dgamma
+    dgamma = np.sum(dout * x_norm, axis=(0,2,3), keepdims=True).reshape((1,C,1,1))#
+    
+    # dL/dbeta
+    dbeta = np.sum(dout, axis=(0,2,3), keepdims=True).reshape((1,C,1,1))
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
